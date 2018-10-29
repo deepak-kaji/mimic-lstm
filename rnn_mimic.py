@@ -139,8 +139,6 @@ def return_data(synth_data=False, balancer=True, target='MI',
       df['VANCOMYCIN'] = df['vancomycin'].apply(lambda x: 1 if x > 0 else 0)   
       del df['vancomycin']
  
-    print('target made')
-
     df = df.select_dtypes(exclude=['object'])
 
     if pad:
@@ -184,18 +182,9 @@ def return_data(synth_data=False, balancer=True, target='MI',
     if dataframe:
       return (df[COLUMNS+[target,"HADM_ID"]]) 
 
-#    bool_df = (df[COLUMNS+[target]] == pad_value)
-#    bool_matrix = bool_df.values
-#    print('BOOL MATRIX SHAPE')
-#    print(bool_matrix.shape)
-#    bool_matrix = bool_matrix.reshape(int(bool_matrix.shape[0]/time_steps),time_steps,bool_matrix.shape[1])
-#    print('BOOL MATRIX RESHAPED')
-#    print(bool_matrix.shape)
 
     MATRIX = df[COLUMNS+[target]].values
-    print('THE MATRIX SHAPE IS {0}'.format(MATRIX.shape))
     MATRIX = MATRIX.reshape(int(MATRIX.shape[0]/time_steps),time_steps,MATRIX.shape[1])
-    print('THE MATRIX NEW SHAPE IS {0}'.format(MATRIX.shape))
 
     ## note we are creating a second order bool matirx
     bool_matrix = (~MATRIX.any(axis=2))
@@ -235,7 +224,6 @@ def return_data(synth_data=False, balancer=True, target='MI',
     y_test_boolmat = y_bool_matrix[int(val_percentage*y_bool_matrix.shape[0])::]
     y_test_boolmat = y_test_boolmat.reshape(y_test_boolmat.shape[0],y_test_boolmat.shape[1],1)
 
-    # shouldn't be necessary but is a sanity check
     X_TEST[x_test_boolmat] = pad_value
     Y_TEST[y_test_boolmat] = pad_value
 
@@ -279,7 +267,7 @@ def return_data(synth_data=False, balancer=True, target='MI',
     return (np.concatenate((X_TRAIN,X_VAL), axis=0),
             np.concatenate((Y_TRAIN,Y_VAL), axis=0), no_feature_cols) 
 
-def build_model(benchmark=False, attention=False, no_feature_cols=None, time_steps=7, output_summary=False):
+def build_model(no_feature_cols=None, time_steps=7, output_summary=False):
 
   """
 
@@ -296,54 +284,24 @@ def build_model(benchmark=False, attention=False, no_feature_cols=None, time_ste
   Keras model object
 
   """
-  if not benchmark and attention:
-    print("time_steps:{0}|no_feature_cols:{1}".format(time_steps,no_feature_cols)) 
-    input_layer = Input(shape=(time_steps, no_feature_cols)) 
-    x = Attention(input_layer, time_steps)
-    x = Masking(mask_value=0, input_shape=(time_steps, no_feature_cols))(x) 
-    x = LSTM(256, return_sequences=True)(x)
-    preds = TimeDistributed(Dense(1, activation="sigmoid"))(x)
-    model = Model(inputs=input_layer, outputs=preds)
+  print("time_steps:{0}|no_feature_cols:{1}".format(time_steps,no_feature_cols)) 
+  input_layer = Input(shape=(time_steps, no_feature_cols)) 
+  x = Attention(input_layer, time_steps)
+  x = Masking(mask_value=0, input_shape=(time_steps, no_feature_cols))(x) 
+  x = LSTM(256, return_sequences=True)(x)
+  preds = TimeDistributed(Dense(1, activation="sigmoid"))(x)
+  model = Model(inputs=input_layer, outputs=preds)
   
-    RMS = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=1e-08)
-    model.compile(optimizer=RMS, loss='binary_crossentropy', metrics=['acc'])
+  RMS = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=1e-08)
+  model.compile(optimizer=RMS, loss='binary_crossentropy', metrics=['acc'])
   
-    if output_summary:
-      model.summary()
-    return model
+  if output_summary:
+    model.summary()
+  return model
 
-  elif not benchmark and not attention:
-    print("time_steps:{0}|no_feature_cols:{1}".format(time_steps,no_feature_cols)) 
-    input_layer = Input(shape=(time_steps, no_feature_cols)) 
-    x = Masking(mask_value=0, input_shape=(time_steps, no_feature_cols))(input_layer) 
-    x = LSTM(256, return_sequences=True)(x)
-    preds = TimeDistributed(Dense(1, activation="sigmoid"))(x)
-    model = Model(inputs=input_layer, outputs=preds)
-  
-    RMS = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=1e-08)
-    model.compile(optimizer=RMS, loss='binary_crossentropy', metrics=['acc'])
-  
-    if output_summary:
-      model.summary()
-    return model
-     
-
-  elif benchmark:
-    print("time_steps:{0}|no_feature_cols:{1}".format(time_steps,no_feature_cols)) 
-    input_layer = Input(shape=(time_steps, no_feature_cols)) 
-    preds = TimeDistributed(Dense(1, activation="sigmoid"))(input_layer)
-    model = Model(inputs=input_layer, outputs=preds)
-  
-    RMS = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
-    model.compile(optimizer=RMS, loss='binary_crossentropy', metrics=['acc'])
-  
-    if output_summary:
-      model.summary()
-    return model
-    
 def train(model_name="kaji_mach_0", synth_data=False, target='MI',
-          benchmark=False, balancer=True, predict=False, return_model=False,
-          n_percentage=1.0, time_steps=14, epochs=10, attention=False):
+          balancer=True, predict=False, return_model=False,
+          n_percentage=1.0, time_steps=14, epochs=10):
 
   """
 
@@ -393,7 +351,7 @@ def train(model_name="kaji_mach_0", synth_data=False, target='MI',
 
   #build model
   model = build_model(no_feature_cols=no_feature_cols, output_summary=True, 
-                      time_steps=time_steps, benchmark=benchmark, attention=attention)
+                      time_steps=time_steps)
 
   #init callbacks
   tb_callback = TensorBoard(log_dir='./logs/{0}_{1}.log'.format(model_name, time),
@@ -453,101 +411,6 @@ def return_loaded_model(model_name="kaji_mach_0"):
   loaded_model = load_model("./saved_models/{0}.h5".format(model_name))
 
   return loaded_model
-
-def cross_validation(target, time_steps, n_splits=5, benchmark=False):
-
-  cvscores = []
-  rocs = []
-  sensitivities = []
-  specificities = []
-
-  (MATRIX, no_feature_cols) = return_data(time_steps=time_steps, target=target, cross_val=True)
-
-  data_indices = np.array(range(MATRIX.shape[0]))
-  bins = np.linspace(data_indices[0], data_indices[-1]+1, n_splits+1)
-  digitized = np.digitize(data_indices, bins)
-  list_of_arrays = [data_indices[digitized == i] for i in range(1, len(bins))]
-
-  for i in range(n_splits):
-
-    temp_list_of_arrays = [data_indices[digitized == i] for i in range(1, len(bins))] 
-    del temp_list_of_arrays[i]
-    train_array = np.hstack(temp_list_of_arrays)
-    test_array = list_of_arrays[i]
- 
-    x_train = None
-    x_test = None
-    y_train = None
-    y_test = None
-    X_TRAIN = None
-    Y_TRAIN = None
-
-    x_train =  MATRIX[:,:,0:-1][train_array]
-    x_test = MATRIX[:,:,0:-1][test_array]
-    y_train = MATRIX[:,:,-1][train_array]
-    y_train = y_train.reshape(y_train.shape[0], y_train.shape[1], 1)
-    y_test = MATRIX[:,:,-1][test_array]
-    y_test = y_test.reshape(y_test.shape[0], y_test.shape[1], 1)
-
-    TRAIN = np.concatenate([x_train, y_train], axis=2)
-    pos_ind = np.unique(np.where(TRAIN[:,:,-1].sum(axis=1) != 0)[0])
-    np.random.shuffle(pos_ind)
-    neg_ind = np.unique(np.where(TRAIN[:,:,-1].sum(axis=1) == 0)[0])
-    np.random.shuffle(neg_ind)
-    length = min(pos_ind.shape[0], neg_ind.shape[0])
-    total_ind = np.hstack([pos_ind[0:length], neg_ind[0:length]])
-    special_ind = np.hstack([pos_ind[0:length], neg_ind[0:int(length)]])
-    np.random.shuffle(total_ind)
-    X_TRAIN = TRAIN[pos_ind,:,0:-1]
-    Y_TRAIN = TRAIN[pos_ind,:,-1]
-    Y_TRAIN = Y_TRAIN.reshape(Y_TRAIN.shape[0], Y_TRAIN.shape[1], 1)
-
-#    if mask:
-#      print('MASK ACTIVATED')
-#      X_TRAIN = np.concatenate([np.zeros((X_TRAIN.shape[0], mask, X_TRAIN.shape[2])), X_TRAIN[:,mask::,::]], axis=1)
-#      x_test = np.concatenate([np.zeros((x_test.shape[0], mask, x_test.shape[2])), x_test[:,mask::,::]], axis=1)
-
-    model = None
-    model = build_model(no_feature_cols=no_feature_cols,
-                        time_steps=time_steps,
-                        output_summary=False,
-                        benchmark=benchmark)
-
-    model.fit(X_TRAIN,
-              Y_TRAIN,
-              batch_size=32,
-              validation_data=(x_test, y_test),
-              epochs=14,
-              verbose=1)
-
-    Y_PRED = None
-    Y_PRED = model.predict(x_test)
-    print('\n')
-    accuracy = None
-    accuracy = accuracy_score(y_test.flatten(), np.around(Y_PRED.flatten()))
-    roc = roc_auc_score(y_test.flatten(), Y_PRED.flatten())
-    specificity = precision_score(y_test.flatten(), np.around(Y_PRED.flatten()))
-    sensitivity = recall_score(y_test.flatten(), np.around(Y_PRED.flatten()))
-    print('Accuracy Scores: {0}'.format(accuracy)) 
-    print('AUC ROC: {0}'.format(roc))
-    print('Specificity: {0}'.format(specificity))
-    print('Sensitivity: {0}'.format(sensitivity))
-    print(confusion_matrix(y_test.flatten(), np.around(Y_PRED.flatten())))
-    cvscores.append(accuracy) 
-    rocs.append(roc)
-    sensitivities.append(sensitivity)
-    specificities.append(specificity)
-
-  print('\n')
-  print(target)
-  print('Accuracy Score')
-  print('{0}% (+/- {1}%)'.format(np.mean(cvscores), np.std(cvscores)))  
-  print('AUC')
-  print('{0}% (+/- {1}%)'.format(np.mean(rocs), np.std(rocs)))  
-  print('Sensitivity Score')
-  print('{0}% (+/- {1}%)'.format(np.mean(sensitivities), np.std(sensitivities)))  
-  print('Specificites Score')
-  print('{0}% (+/- {1}%)'.format(np.mean(specificities), np.std(specificities)))  
 
 def pickle_objects(target='MI', time_steps=14):
 
@@ -613,64 +476,28 @@ def pickle_objects(target='MI', time_steps=14):
 
 if __name__ == "__main__":
 
-#    pickle_objects(target='MI', time_steps=14)#
-#    K.clear_session()
-#    pickle_objects(target='SEPSIS', time_steps=14)
-#    K.clear_session()
-#    pickle_objects(target='VANCOMYCIN', time_steps=14)
-#
-##  cross_validation('MI', 14, n_splits=5) #, benchmark=True) #, mask=8)
-##  cross_validation('SEPSIS', 14, n_splits=5) # benchmark=True)
-##  cross_validation('VANCOMYCIN', 14, n_splits=5) #benchmark=True)
-#
-### BIG THREE ##
-#
-#    K.clear_session()
-#    train(model_name='kaji_mach_final_no_mask_MI_pad14', epochs=13,
-#          synth_data=False, predict=True, target='MI', time_steps=14)
-#
-#    K.clear_session()
-#
-#    train(model_name='kaji_mach_final_no_mask_VANCOMYCIN_pad14', epochs=14,
-#          synth_data=False, predict=True, target='VANCOMYCIN', time_steps=14) 
-#
-#    K.clear_session()
-#
-#    train(model_name='kaji_mach_final_no_mask_SEPSIS_pad14', epochs=17,
-#          synth_data=False, predict=True, target='SEPSIS', time_steps=14) 
-#
-####
-#
-#    K.clear_session()
-#    train(model_name='kaji_mach_final_no_mask_MI_pad14_attention', epochs=13,
-#          synth_data=False, predict=True, target='MI', time_steps=14,
-#          attention=True)
-#
-#    K.clear_session()
-#
-#    train(model_name='kaji_mach_final_no_mask_VANCOMYCIN_pad14_attention', epochs=14,
-#          synth_data=False, predict=True, target='VANCOMYCIN', time_steps=14,
-#          attention=True) 
-#
-#    K.clear_session()
-#
-#    train(model_name='kaji_mach_final_no_mask_SEPSIS_pad14_attention', epochs=17,
-#          synth_data=False, predict=True, target='SEPSIS', time_steps=14,
-#          attention=True) 
-#
-## BIG THREE BENCHMARK ##
+    pickle_objects(target='MI', time_steps=14)#
+    K.clear_session()
+    pickle_objects(target='SEPSIS', time_steps=14)
+    K.clear_session()
+    pickle_objects(target='VANCOMYCIN', time_steps=14)
 
-    train(model_name='kaji_mach_final_no_mask_MI_pad14_bench', 
-          epochs=13, synth_data=False, predict=True, target='MI',
-          time_steps=14, benchmark=True) #, mask=4)
-  
-    train(model_name='kaji_mach_final_no_mask_VANCOMYCIN_pad14_bench',
-          epochs=14, synth_data=False, predict=True, target='VANCOMYCIN',
-          time_steps=14, benchmark=True) 
-  
-    train(model_name='kaji_mach_final_no_mask_SEPSIS_pad14_bench',
-          epochs=17, synth_data=False, predict=True, target='SEPSIS',
-          time_steps=14, benchmark=True) 
+## BIG THREE ##
+
+    K.clear_session()
+    train(model_name='kaji_mach_final_no_mask_MI_pad14', epochs=13,
+          synth_data=False, predict=True, target='MI', time_steps=14)
+
+    K.clear_session()
+
+    train(model_name='kaji_mach_final_no_mask_VANCOMYCIN_pad14', epochs=14,
+          synth_data=False, predict=True, target='VANCOMYCIN', time_steps=14) 
+
+    K.clear_session()
+
+    train(model_name='kaji_mach_final_no_mask_SEPSIS_pad14', epochs=17,
+          synth_data=False, predict=True, target='SEPSIS', time_steps=14) 
+
 
 ## REDUCE SAMPLE SIZES ##
 
