@@ -2,7 +2,6 @@
 
 This is a complete preprocessing, model training, and figure generation repo for "An attention based deep learning model of clinical events in the intensive care unit"
 
-
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
@@ -16,16 +15,15 @@ rnn_mimic.py contains classes for transforming the pandas dataframe into a 3rd o
 
 Models and figures are generated in the ipynb notebook. Simply adjusting the target to 'MI', 'Sepsis', or 'Vancomycin' will generate the figures panels and images required for each part of the figure.
 
-
-Prerequisites
+### Prerequisites
 The pad_sequences.py file is reuqired for rnn_mimic.py functionality. Additionally, the attention function adapted from Phillipe Remy's Github has been cloned as attention_function.py. All networks were constructed in Tensorflow using the Keras API. The 
 
-Authors
+### Authors
 Deepak A. Kaji was the core contributor for this repository. 
 
-License
+### License
 This project is licensed under the MIT License - see the LICENSE.md file for details
 
-Acknowledgments
-We thank Phillipe Remy for his this implementation of variable level attention in Keras. 
+### Acknowledgments
+We thank Phillipe Remy for his implementation of variable level attention in Keras. 
 
