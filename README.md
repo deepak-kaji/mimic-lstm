@@ -27,5 +27,5 @@ Deepak A. Kaji was the core contributor for this repository.
 This project is licensed under the MIT License - see the LICENSE.md file for details
 
 ### Acknowledgments
-We thank Phillipe Remy for his implementation of variable level attention in Keras. 
+We thank Philippe Remy for his implementation of variable level attention in Keras. 
 
