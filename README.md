@@ -18,7 +18,7 @@ rnn_mimic.py contains classes for transforming the pandas dataframe into a 3rd o
 Models and figures are generated in the .ipynb notebook. Simply adjusting the target to 'MI', 'Sepsis', or 'Vancomycin' will generate the figures panels and images required for each part of the figure.
 
 ### Prerequisites
-The pad_sequences.py file is reuqired for rnn_mimic.py functionality. Additionally, the attention function adapted from Phillipe Remy's Github has been cloned as attention_function.py and is required for the build_model function in rnn_mimic.py which assembles the LSTM-RNN with attention. All LSTM-RNNs were constructed in Tensorflow using the Keras API. Sklearn was used for validation metrics such as the AUROC. Numpy and Pandas libraries were required for table and matrix manipulation. 
+The pad_sequences.py file is reuqired for rnn_mimic.py functionality. Additionally, the attention function adapted from Philippe Remy's Github has been cloned as attention_function.py and is required for the build_model function in rnn_mimic.py which assembles the LSTM-RNN with attention. All LSTM-RNNs were constructed in Tensorflow using the Keras API. Sklearn was used for validation metrics such as the AUROC. Numpy and Pandas libraries were required for table and matrix manipulation. 
 
 ### Authors
 Deepak A. Kaji was the core contributor for this repository. 
